@@ -1,5 +1,5 @@
 import express from "express";
-import { createCategory, deleteCategory, getCategories, updateCourse } from "../controllers/categoryController.js";
+import { createCategory, deleteCategory, getCategories, updateCategory } from "../controllers/categoryController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { authorize } from "../middlewares/roleMiddleware.js";
 
@@ -13,6 +13,6 @@ router.get("/",  getCategories);
 
 router.delete("/:id", protect, authorize("admin"), deleteCategory);
 
-router.put("/:id", protect, authorize("admin"), updateCourse);
+router.put("/:id", protect, authorize("admin"), updateCategory);
 
 export default router;

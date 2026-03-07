@@ -80,7 +80,9 @@ const progressSlice = createSlice({
       })
 
       .addCase(markModuleComplete.fulfilled, (state, action) => {
-        state.completedModules.push(action.payload);
+        if (!state.completedModules.includes(action.payload)) {
+          state.completedModules.push(action.payload);
+        }
       });
   },
 });

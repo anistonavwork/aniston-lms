@@ -9,6 +9,11 @@ import {
   markModuleComplete,
 } from "../../features/progressSlice";
 
+/* ==========================
+   BASE URL (NO HARDCODED LOCALHOST)
+========================== */
+const BASE_URL = axiosInstance.defaults.baseURL.replace("/api", "");
+
 const UserDashboard = () => {
   const dispatch = useDispatch();
 
@@ -35,7 +40,7 @@ const UserDashboard = () => {
       try {
         const res = await axiosInstance.get("/courses/tree/all");
         setLevels(res.data);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load LMS content");
       }
     };
@@ -45,14 +50,12 @@ const UserDashboard = () => {
 
   /* ==========================
    FETCH USER ENROLLMENTS
-========================== */
+  ========================== */
   useEffect(() => {
     const fetchEnrollments = async () => {
       try {
         const res = await axiosInstance.get("/enrollments/my-courses");
-
         const ids = res.data.map((c) => c.id);
-
         setEnrolledCourses(ids);
       } catch {
         toast.error("Failed to load enrollments");
@@ -76,7 +79,7 @@ const UserDashboard = () => {
       setSelectedCourse(null);
       setModules([]);
       setActiveModule(null);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load courses");
     }
   };
@@ -87,14 +90,14 @@ const UserDashboard = () => {
   const fetchModules = async (courseId) => {
     try {
       const res = await axiosInstance.get(`/modules/${courseId}`);
-     setActiveModule(null);
+
       setModules(res.data);
       setSelectedCourse(courseId);
 
       if (res.data.length > 0) {
         setActiveModule(res.data[0]);
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to load modules");
     }
   };
@@ -131,7 +134,7 @@ const UserDashboard = () => {
 
   /* ==========================
    ENROLL COURSE
-========================== */
+  ========================== */
   const enrollCourse = async (courseId) => {
     try {
       await axiosInstance.post("/enrollments/enroll", {
@@ -141,9 +144,9 @@ const UserDashboard = () => {
       toast.success("Enrollment successful");
 
       setEnrolledCourses((prev) =>
-  prev.includes(courseId) ? prev : [...prev, courseId]
-);
-    } catch (err) {
+        prev.includes(courseId) ? prev : [...prev, courseId],
+      );
+    } catch {
       toast.error("Enrollment failed");
     }
   };
@@ -204,7 +207,6 @@ const UserDashboard = () => {
                     {course.description}
                   </p>
 
-                  {/* Progress */}
                   {isEnrolled && (
                     <div className="mt-4">
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -217,10 +219,15 @@ const UserDashboard = () => {
                       <p className="text-xs text-gray-500 mt-1">
                         Progress: {progressPercent}%
                       </p>
+
+                      {progressPercent === 100 && (
+                        <p className="text-green-600 text-sm font-semibold mt-1">
+                          ✔ Course Completed
+                        </p>
+                      )}
                     </div>
                   )}
 
-                  {/* BUTTON */}
                   <div className="mt-4">
                     {!isEnrolled && (
                       <button
@@ -262,7 +269,7 @@ const UserDashboard = () => {
           </button>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {/* ================= SIDEBAR ================= */}
+            {/* SIDEBAR */}
             <div className="md:col-span-1 border rounded-lg p-4 space-y-3 h-fit">
               {modules.map((mod, index) => {
                 const isCompleted = completedModules.includes(mod.id);
@@ -277,13 +284,11 @@ const UserDashboard = () => {
                     onClick={() => {
                       if (isUnlocked) setActiveModule(mod);
                     }}
-                    className={`p-3 rounded cursor-pointer border
-                    ${
+                    className={`p-3 rounded cursor-pointer border ${
                       activeModule?.id === mod.id
                         ? "bg-blue-50 border-blue-400"
                         : "hover:bg-gray-50"
-                    }
-                  `}
+                    }`}
                   >
                     <div className="flex justify-between items-center">
                       <span>{mod.title}</span>
@@ -297,35 +302,61 @@ const UserDashboard = () => {
               })}
             </div>
 
-            {/* ================= PLAYER ================= */}
+            {/* PLAYER */}
             <div className="md:col-span-2 border rounded-lg p-6 bg-white shadow-sm">
               {activeModule && (
                 <>
                   <h3 className="font-semibold mb-4">{activeModule.title}</h3>
 
+                  {/* VIDEO */}
                   {activeModule.video_url && (
                     <div className="aspect-video mb-4">
                       <iframe
                         className="w-full h-full rounded-md"
                         src={
-  activeModule.video_url.includes("watch?v=")
-    ? activeModule.video_url.replace("watch?v=", "embed/")
-    : activeModule.video_url
-}
+                          activeModule.video_url.includes("watch?v=")
+                            ? activeModule.video_url.replace(
+                                "watch?v=",
+                                "embed/",
+                              )
+                            : activeModule.video_url
+                        }
                         title={activeModule.title}
                         allowFullScreen
                       />
                     </div>
                   )}
 
+                  {/* PDF VIEWER */}
+                  {activeModule.file_path &&
+                    activeModule.file_path.endsWith(".pdf") && (
+                      <iframe
+                        src={`${BASE_URL}/${activeModule.file_path}`}
+                        className="w-full h-[600px] border rounded mb-4"
+                        title="PDF Viewer"
+                      />
+                    )}
+
+                  {/* PPT VIEWER */}
+                  {activeModule.file_path &&
+                    (activeModule.file_path.endsWith(".ppt") ||
+                      activeModule.file_path.endsWith(".pptx")) && (
+                      <iframe
+                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${BASE_URL}/${activeModule.file_path}`}
+                        className="w-full h-[600px] border rounded mb-4"
+                        title="PPT Viewer"
+                      />
+                    )}
+
+                  {/* DOWNLOAD FILE */}
                   {activeModule.file_path && (
                     <a
-                      href={`http://localhost:5000/${activeModule.file_path}`}
+                      href={`${BASE_URL}/${activeModule.file_path}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-600 underline block mb-4"
                     >
-                      Open Learning Material
+                      Download File
                     </a>
                   )}
 

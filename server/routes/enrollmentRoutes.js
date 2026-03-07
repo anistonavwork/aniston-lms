@@ -1,7 +1,6 @@
 import express from "express";
 import {
-  enrollCourse,
-  getMyCourses
+  enrollCourse
 } from "../controllers/enrollmentController.js";
 
 import { protect } from "../middlewares/authMiddleware.js";
@@ -16,12 +15,6 @@ POST /api/enrollments/enroll
 */
 router.post("/enroll", protect, enrollCourse);
 
-/*
----------------------------------------
-GET MY ENROLLED COURSES
----------------------------------------
-GET /api/enrollments/my-courses
-*/
-router.get("/my-courses", protect, getMyCourses);
+
 
 export default router;

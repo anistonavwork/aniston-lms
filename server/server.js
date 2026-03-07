@@ -1,11 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import db from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import lectureRoutes from "./routes/lectureRoutes.js";
 
 import categoryRoutes from "./routes/categoryRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
@@ -37,7 +37,7 @@ app.use(express.json());
 
 
 app.use("/certificates", express.static("certificates"));
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 
 app.use("/api/auth", authRoutes);
@@ -54,7 +54,6 @@ app.use("/api/assessment", assessmentRoutes);
 
 
 
-app.use("/api/lectures", lectureRoutes);
 
 
 

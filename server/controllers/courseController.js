@@ -5,10 +5,13 @@ import db from "../config/db.js";
 ============================ */
 export const createCourse = async (req, res) => {
   try {
+
     const { title, description, category_id } = req.body;
 
     if (!title || !category_id) {
-      return res.status(400).json({ message: "Title and category required" });
+      return res.status(400).json({
+        message: "Title and category required"
+      });
     }
 
     await db.query(
@@ -16,18 +19,29 @@ export const createCourse = async (req, res) => {
       [title, description || null, category_id]
     );
 
-    res.status(201).json({ message: "Course created successfully" });
+    res.status(201).json({
+      message: "Course created successfully"
+    });
+
   } catch (error) {
+
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+
+    res.status(500).json({
+      message: "Server error"
+    });
+
   }
 };
+
 
 /* ============================
    GET COURSES BY CATEGORY
 ============================ */
 export const getCoursesByCategory = async (req, res) => {
+
   try {
+
     const { categoryId } = req.params;
 
     const [courses] = await db.query(
@@ -36,201 +50,8 @@ export const getCoursesByCategory = async (req, res) => {
     );
 
     res.json(courses);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-
-/* ============================
-   LMS TREE (LEVEL → CATEGORY → COURSE → MODULE)
-============================ */
-export const getCourseTree = async (req, res) => {
-  try {
-
-    const [levels] = await db.query("SELECT * FROM levels ORDER BY id");
-
-    const tree = [];
-
-    for (const level of levels) {
-
-      const [categories] = await db.query(
-        "SELECT * FROM categories WHERE level_id = ?",
-        [level.id]
-      );
-
-      const categoryData = [];
-
-      for (const category of categories) {
-
-        const [courses] = await db.query(
-          "SELECT * FROM courses WHERE category_id = ?",
-          [category.id]
-        );
-
-        const courseData = [];
-
-        for (const course of courses) {
-
-          const [modules] = await db.query(
-            "SELECT * FROM modules WHERE course_id = ? ORDER BY lecture_order",
-            [course.id]
-          );
-
-          courseData.push({
-            ...course,
-            modules
-          });
-
-        }
-
-        categoryData.push({
-          ...category,
-          courses: courseData
-        });
-
-      }
-
-      tree.push({
-        ...level,
-        categories: categoryData
-      });
-
-    }
-
-    res.json(tree);
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-
-
-/* ============================
-   USER LMS COURSES (FILTERED)
-============================ */
-export const getMyCourses = async (req, res) => {
-
-  try {
-
-    const userId = req.user.id;
-
-    /* ===============================
-       GET USER INFO
-    =============================== */
-
-    const [[user]] = await db.query(
-      `SELECT business_category, designation_id
-       FROM users
-       WHERE id = ?`,
-      [userId]
-    );
-
-    const userCategory = user.business_category;
-    const userDesignation = user.designation_id;
-
-    /* ===============================
-       GET LEVELS
-    =============================== */
-
-    const [levels] = await db.query(
-      "SELECT * FROM levels ORDER BY id"
-    );
-
-    const tree = [];
-
-    for (const level of levels) {
-
-      let categories;
-
-      /* ===============================
-         LEVEL 1 → FOR EVERYONE
-      =============================== */
-
-      if (level.id === 1) {
-
-        [categories] = await db.query(
-          `SELECT * FROM categories
-           WHERE level_id = 1`
-        );
-
-      }
-
-      /* ===============================
-         LEVEL 2 → ONLY EMPLOYEES
-      =============================== */
-
-      else if (level.id === 2) {
-
-        if (userCategory !== "Employees") {
-
-          categories = [];
-
-        } else {
-
-          [categories] = await db.query(
-            `SELECT * FROM categories
-             WHERE level_id = 2
-             AND designation_id = ?`,
-            [userDesignation]
-          );
-
-        }
-
-      }
-
-      const categoryData = [];
-
-      for (const category of categories) {
-
-        const [courses] = await db.query(
-          `SELECT * FROM courses
-           WHERE category_id = ?`,
-          [category.id]
-        );
-
-        const courseData = [];
-
-        for (const course of courses) {
-
-          const [modules] = await db.query(
-            `SELECT * FROM modules
-             WHERE course_id = ?
-             ORDER BY lecture_order`,
-            [course.id]
-          );
-
-          courseData.push({
-            ...course,
-            modules
-          });
-
-        }
-
-        categoryData.push({
-          ...category,
-          courses: courseData
-        });
-
-      }
-
-      tree.push({
-        ...level,
-        categories: categoryData
-      });
-
-    }
-
-    res.json(tree);
-
-  }
-
-  catch (error) {
 
     console.error(error);
 
@@ -240,4 +61,123 @@ export const getMyCourses = async (req, res) => {
 
   }
 
+};
+
+
+/* ============================
+   LMS TREE (LEVEL → CATEGORY → COURSE → MODULE)
+============================ */
+export const getCourseTree = async (req, res) => {
+
+  try {
+
+    const [levels] = await db.query(
+      "SELECT * FROM levels ORDER BY id"
+    );
+
+    const [categories] = await db.query(
+      "SELECT * FROM categories"
+    );
+
+    const [courses] = await db.query(
+      "SELECT * FROM courses"
+    );
+
+    const [modules] = await db.query(
+      "SELECT * FROM modules ORDER BY lecture_order"
+    );
+
+    /* ============================
+       GET USER DESIGNATION
+    ============================ */
+
+    const userId = req.user?.id;
+
+    let userDesignation = null;
+
+    if (userId) {
+
+      const [[user]] = await db.query(
+        "SELECT designation_id FROM users WHERE id = ?",
+        [userId]
+      );
+
+      userDesignation = user?.designation_id || null;
+
+    }
+
+    /* ============================
+       BUILD TREE
+    ============================ */
+
+    const tree = levels.map(level => {
+
+      const levelCategories = categories
+        .filter(cat => {
+
+          if (cat.level_id !== level.id) return false;
+
+          /* LEVEL 1 → EVERYONE */
+          if (level.id === 1) return true;
+
+          /* LEVEL 2 → DESIGNATION BASED */
+          if (level.id === 2) {
+            return cat.designation_id === userDesignation;
+          }
+
+          return false;
+
+        })
+        .map(category => {
+
+          const categoryCourses = courses
+            .filter(course => course.category_id === category.id)
+            .map(course => {
+
+              const courseModules = modules
+                .filter(mod => mod.course_id === course.id);
+
+              return {
+                ...course,
+                modules: courseModules
+              };
+
+            });
+
+          return {
+            ...category,
+            courses: categoryCourses
+          };
+
+        });
+
+      return {
+        ...level,
+        categories: levelCategories
+      };
+
+    });
+
+    res.json(tree);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+
+  }
+
+};
+
+
+
+/* ============================
+   USER LMS COURSES
+============================ */
+
+export const getMyCourses = async (req, res) => {
+  return getCourseTree(req, res);
 };

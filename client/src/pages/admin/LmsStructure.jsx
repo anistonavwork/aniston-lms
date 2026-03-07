@@ -5,6 +5,16 @@ import { toast } from "react-toastify";
 const LmsStructure = () => {
 
   const [structure, setStructure] = useState([]);
+  const [editingModule, setEditingModule] = useState(null);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    lecture_order: ""
+  });
+
+  /* ----------------------------
+     FETCH LMS STRUCTURE
+  -----------------------------*/
 
   const fetchStructure = async () => {
 
@@ -21,6 +31,14 @@ const LmsStructure = () => {
     }
 
   };
+
+  useEffect(() => {
+    fetchStructure();
+  }, []);
+
+  /* ----------------------------
+     DELETE MODULE
+  -----------------------------*/
 
   const deleteModule = async (id) => {
 
@@ -42,9 +60,63 @@ const LmsStructure = () => {
 
   };
 
-  useEffect(() => {
-    fetchStructure();
-  }, []);
+  /* ----------------------------
+     START EDIT
+  -----------------------------*/
+
+  const startEdit = (module) => {
+
+    setEditingModule(module.id);
+
+    setFormData({
+      title: module.title,
+      lecture_order: module.lecture_order
+    });
+
+  };
+
+  /* ----------------------------
+     HANDLE INPUT
+  -----------------------------*/
+
+  const handleChange = (e) => {
+
+    const { name, value } = e.target;
+
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+
+  };
+
+  /* ----------------------------
+     SAVE MODULE
+  -----------------------------*/
+
+  const saveModule = async (id) => {
+
+    try {
+
+      await axiosInstance.put(`/modules/${id}`, formData);
+
+      toast.success("Module updated");
+
+      setEditingModule(null);
+
+      fetchStructure();
+
+    } catch {
+
+      toast.error("Update failed");
+
+    }
+
+  };
+
+  /* ----------------------------
+     UI
+  -----------------------------*/
 
   return (
 
@@ -69,9 +141,7 @@ const LmsStructure = () => {
             </h3>
 
             {level.categories.length === 0 && (
-              <p className="text-gray-400">
-                No categories
-              </p>
+              <p className="text-gray-400">No categories</p>
             )}
 
             {level.categories.map((cat) => (
@@ -100,19 +170,67 @@ const LmsStructure = () => {
 
                       <div
                         key={mod.id}
-                        className="ml-6 flex justify-between items-center border p-2 rounded mb-2"
+                        className="ml-6 border p-3 rounded mb-2"
                       >
 
-                        <span>
-                          {mod.lecture_order}. {mod.title}
-                        </span>
+                        {editingModule === mod.id ? (
 
-                        <button
-                          onClick={() => deleteModule(mod.id)}
-                          className="text-red-600 text-sm"
-                        >
-                          Delete
-                        </button>
+                          <div className="flex gap-2 items-center">
+
+                            <input
+                              type="text"
+                              name="title"
+                              value={formData.title}
+                              onChange={handleChange}
+                              className="border p-1 rounded"
+                            />
+
+                            <input
+                              type="number"
+                              name="lecture_order"
+                              value={formData.lecture_order}
+                              onChange={handleChange}
+                              className="border p-1 rounded w-20"
+                            />
+
+                            <button
+                              onClick={() => saveModule(mod.id)}
+                              className="text-green-600 text-sm"
+                            >
+                              Save
+                            </button>
+
+                          </div>
+
+                        ) : (
+
+                          <div className="flex justify-between items-center">
+
+                            <span>
+                              {mod.lecture_order}. {mod.title}
+                            </span>
+
+                            <div className="flex gap-3">
+
+                              <button
+                                onClick={() => startEdit(mod)}
+                                className="text-blue-600 text-sm"
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                onClick={() => deleteModule(mod.id)}
+                                className="text-red-600 text-sm"
+                              >
+                                Delete
+                              </button>
+
+                            </div>
+
+                          </div>
+
+                        )}
 
                       </div>
 

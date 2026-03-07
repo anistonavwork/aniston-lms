@@ -74,6 +74,7 @@ const DashboardLayout = () => {
               </Link>
               <Link to="/admin/assessments">Assessments</Link>
               <Link to="/admin/lms-structure">LMS Structure</Link>
+              <Link to="/admin/upload-lecture">Upload Lectures</Link>
             </>
           )}
         </nav>

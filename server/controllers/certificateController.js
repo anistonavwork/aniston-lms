@@ -23,7 +23,7 @@ export const generateCertificate = async (req, res) => {
        WHERE user_id = ? AND level = 2
        ORDER BY taken_at DESC
        LIMIT 1`,
-      [userId]
+      [userId],
     );
 
     if (assessment.length === 0) {
@@ -45,7 +45,7 @@ export const generateCertificate = async (req, res) => {
     const [existing] = await db.query(
       `SELECT * FROM certificates
        WHERE user_id = ? AND level = 2`,
-      [userId]
+      [userId],
     );
 
     if (existing.length > 0) {
@@ -56,10 +56,9 @@ export const generateCertificate = async (req, res) => {
        GET USER INFO
     =============================== */
 
-    const [[user]] = await db.query(
-      `SELECT name FROM users WHERE id = ?`,
-      [userId]
-    );
+    const [[user]] = await db.query(`SELECT name FROM users WHERE id = ?`, [
+      userId,
+    ]);
 
     /* ===============================
        CREATE CERTIFICATE DIRECTORY
@@ -103,17 +102,17 @@ export const generateCertificate = async (req, res) => {
 
     doc.moveDown();
 
-    doc.fontSize(20).text(
-      "has successfully completed the Level 2 Training Program",
-      { align: "center" }
-    );
+    doc
+      .fontSize(20)
+      .text("has successfully completed the Level 2 Training Program", {
+        align: "center",
+      });
 
     doc.moveDown();
 
-    doc.fontSize(16).text(
-      `Date: ${new Date().toDateString()}`,
-      { align: "center" }
-    );
+    doc
+      .fontSize(16)
+      .text(`Date: ${new Date().toDateString()}`, { align: "center" });
 
     doc.end();
 
@@ -123,11 +122,27 @@ export const generateCertificate = async (req, res) => {
        STORE CERTIFICATE IN DATABASE
     =============================== */
 
-    const [result] = await db.query(
-      `INSERT INTO certificates (user_id, level, certificate_url)
-       VALUES (?, ?, ?)`,
-      [userId, 2, certUrl]
-    );
+    let result;
+
+    try {
+      [result] = await db.query(
+        `INSERT INTO certificates (user_id, level, certificate_url)
+     VALUES (?, ?, ?)`,
+        [userId, 2, certUrl],
+      );
+    } catch (err) {
+      if (err.code === "ER_DUP_ENTRY") {
+        const [existing] = await db.query(
+          `SELECT * FROM certificates
+       WHERE user_id = ? AND level = 2`,
+          [userId],
+        );
+
+        return res.json(existing[0]);
+      }
+
+      throw err;
+    }
 
     res.json({
       id: result.insertId,
@@ -157,7 +172,7 @@ export const getUserCertificates = async (req, res) => {
       `SELECT * FROM certificates
        WHERE user_id = ?
        ORDER BY issued_at DESC`,
-      [userId]
+      [userId],
     );
 
     res.json(rows);

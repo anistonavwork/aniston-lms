@@ -18,13 +18,12 @@ const Assessments = () => {
 
         const levels = tree.data;
 
-        let level1Modules = 0;
-        let level1Completed = 0;
-
         let level2Modules = 0;
         let level2Completed = 0;
 
         for (const level of levels) {
+          if (level.id !== 2) continue;
+
           for (const category of level.categories) {
             for (const course of category.courses) {
               const progress = await axiosInstance.get(
@@ -33,28 +32,19 @@ const Assessments = () => {
 
               const completed = progress.data.filter((p) => p.completed).length;
 
-              const total = course.modules.length;
+              const total = progress.data.length;
 
-              if (level.id === 1) {
-                level1Modules += total;
-                level1Completed += completed;
-              }
-
-              if (level.id === 2) {
-                level2Modules += total;
-                level2Completed += completed;
-              }
+              level2Modules += total;
+              level2Completed += completed;
             }
           }
-        }
-
-        if (level1Modules > 0 && level1Completed === level1Modules) {
-          setLevel1Unlocked(true);
         }
 
         if (level2Modules > 0 && level2Completed === level2Modules) {
           setLevel2Unlocked(true);
         }
+
+        setLevel1Unlocked(true);
       } catch (error) {
         console.log(error);
       }

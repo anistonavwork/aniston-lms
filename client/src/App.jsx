@@ -26,6 +26,7 @@ import Certificates from "./components/dashboard/Certificates";
 import UserProfile from "./components/dashboard/UserProfile";
 import AdminAssessments from "./pages/admin/AdminAssessments";
 import LmsStructure from "./pages/admin/LmsStructure";
+import UploadLecture from "./pages/admin/UploadLecture";
 
 function App() {
   const location = useLocation();
@@ -88,6 +89,7 @@ function App() {
           <Route path="modules" element={<ManageModules />} />
           <Route path="assessments" element={<AdminAssessments />} />
           <Route path="lms-structure" element={<LmsStructure />} />
+          <Route path="upload-lecture" element={<UploadLecture />} />
         </Route>
 
         {/* ================= 404 ================= */}

@@ -84,22 +84,35 @@ export const deleteCategory = async (req, res) => {
 };
 
 
-export const updateCourse = async (req, res) => {
+export const updateCategory = async (req, res) => {
   try {
+
     const { id } = req.params;
-    const { title, description, category_id } = req.body;
+    const { name, level_id, designation_id } = req.body;
 
     await db.query(
-      `UPDATE courses 
-       SET title = ?, description = ?, category_id = ?
+      `UPDATE categories
+       SET name = ?, level_id = ?, designation_id = ?
        WHERE id = ?`,
-      [title, description, category_id, id]
+      [
+        name,
+        level_id,
+        level_id === 2 ? designation_id : null,
+        id
+      ]
     );
 
-    res.json({ message: "Course updated successfully" });
+    res.json({
+      message: "Category updated successfully"
+    });
 
   } catch (error) {
+
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+
+    res.status(500).json({
+      message: "Server error"
+    });
+
   }
 };
