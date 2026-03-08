@@ -15,18 +15,15 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import ManageUsers from "./pages/admin/ManageUsers";
 import UserDetails from "./pages/admin/UserDetails";
-import ManageCategories from "./pages/admin/ManageCategories";
 import ManageCourses from "./pages/admin/ManageCourses";
-import ManageModules from "./pages/admin/ManageModules";
 
 /* User Pages */
 import UserDashboard from "./pages/dashboard/UserDashboard";
 import Assessments from "./components/dashboard/Assessments";
 import Certificates from "./components/dashboard/Certificates";
 import UserProfile from "./components/dashboard/UserProfile";
-import AdminAssessments from "./pages/admin/AdminAssessments";
-import LmsStructure from "./pages/admin/LmsStructure";
-import UploadLecture from "./pages/admin/UploadLecture";
+import AddCourse from "./pages/admin/AddCourse";
+import EditCourse from "./pages/admin/EditCourse";
 
 function App() {
   const location = useLocation();
@@ -82,14 +79,9 @@ function App() {
           {/* USERS */}
           <Route path="users" element={<ManageUsers />} />
           <Route path="users/:id" element={<UserDetails />} />
-
-          {/* LMS MANAGEMENT */}
-          <Route path="categories" element={<ManageCategories />} />
+          <Route path="add-course" element={<AddCourse />} />
           <Route path="courses" element={<ManageCourses />} />
-          <Route path="modules" element={<ManageModules />} />
-          <Route path="assessments" element={<AdminAssessments />} />
-          <Route path="lms-structure" element={<LmsStructure />} />
-          <Route path="upload-lecture" element={<UploadLecture />} />
+          <Route path="edit-course/:courseId" element={<EditCourse />} />
         </Route>
 
         {/* ================= 404 ================= */}

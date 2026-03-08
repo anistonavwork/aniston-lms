@@ -44,10 +44,17 @@ export const getCoursesByCategory = async (req, res) => {
 
     const { categoryId } = req.params;
 
-    const [courses] = await db.query(
-      "SELECT * FROM courses WHERE category_id = ? ORDER BY created_at DESC",
-      [categoryId]
-    );
+    const [courses] = await db.query(`
+      SELECT 
+        c.*,
+        COUNT(m.id) AS module_count
+      FROM courses c
+      LEFT JOIN modules m 
+        ON m.course_id = c.id
+      WHERE c.category_id = ?
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `, [categoryId]);
 
     res.json(courses);
 
@@ -181,3 +188,8 @@ export const getCourseTree = async (req, res) => {
 export const getMyCourses = async (req, res) => {
   return getCourseTree(req, res);
 };
+
+
+
+
+

@@ -17,7 +17,10 @@ export const completeModule = async (req, res) => {
       });
     }
 
-    // check if module already completed
+    /* =========================
+       CHECK IF MODULE ALREADY COMPLETED
+    ========================= */
+
     const [existing] = await db.query(
       `SELECT * FROM user_progress 
        WHERE user_id = ? AND module_id = ?`,
@@ -30,7 +33,10 @@ export const completeModule = async (req, res) => {
       });
     }
 
-    // insert completion
+    /* =========================
+       INSERT MODULE COMPLETION
+    ========================= */
+
     await db.query(
       `INSERT INTO user_progress 
        (user_id, course_id, module_id, completed, completed_at)
@@ -39,11 +45,11 @@ export const completeModule = async (req, res) => {
     );
 
     /* =========================
-   CHECK COURSE COMPLETION
-========================= */
+       CHECK COURSE COMPLETION
+    ========================= */
 
     const [[module]] = await db.query(
-      "SELECT course_id FROM modules WHERE id = ?",
+      `SELECT course_id FROM modules WHERE id = ?`,
       [module_id],
     );
 
@@ -52,7 +58,9 @@ export const completeModule = async (req, res) => {
     /* TOTAL MODULES IN COURSE */
 
     const [[totalModules]] = await db.query(
-      "SELECT COUNT(*) as total FROM modules WHERE course_id = ?",
+      `SELECT COUNT(*) as total 
+       FROM modules 
+       WHERE course_id = ?`,
       [courseId],
     );
 
@@ -60,17 +68,25 @@ export const completeModule = async (req, res) => {
 
     const [[completedModules]] = await db.query(
       `SELECT COUNT(*) as completed
-   FROM user_progress mp
-   JOIN modules m ON mp.module_id = m.id
-   WHERE mp.user_id = ? AND m.course_id = ?`,
+       FROM user_progress up
+       JOIN modules m ON up.module_id = m.id
+       WHERE up.user_id = ? 
+       AND m.course_id = ? 
+       AND up.completed = true`,
       [userId, courseId],
     );
 
-    /* IF ALL COMPLETED */
+    /* =========================
+       IF ALL MODULES COMPLETED
+    ========================= */
 
     if (completedModules.completed === totalModules.total) {
-  console.log(`User ${userId} completed course ${courseId}`);
-}
+      await db.query(
+        `INSERT IGNORE INTO course_completions (user_id, course_id)
+         VALUES (?, ?)`,
+        [userId, courseId],
+      );
+    }
 
     res.json({
       message: "Module marked as completed",
@@ -96,14 +112,14 @@ export const getCourseProgress = async (req, res) => {
 
     const [rows] = await db.query(
       `SELECT 
-      m.id AS module_id,
-      IF(up.completed IS NULL, false, up.completed) AS completed
-   FROM modules m
-   LEFT JOIN user_progress up 
-      ON up.module_id = m.id 
-      AND up.user_id = ?
-   WHERE m.course_id = ?
-   ORDER BY m.lecture_order ASC`,
+        m.id AS module_id,
+        IF(up.completed IS NULL, false, up.completed) AS completed
+       FROM modules m
+       LEFT JOIN user_progress up 
+         ON up.module_id = m.id 
+         AND up.user_id = ?
+       WHERE m.course_id = ?
+       ORDER BY m.lecture_order ASC`,
       [userId, courseId],
     );
 
@@ -127,19 +143,24 @@ export const getNextModule = async (req, res) => {
     const userId = req.user.id;
     const { courseId } = req.params;
 
-    // get modules in order
+    /* GET MODULES ORDER */
+
     const [modules] = await db.query(
-      `SELECT id 
-   FROM modules 
-   WHERE course_id = ?
-   ORDER BY lecture_order ASC`,
+      `SELECT id
+       FROM modules
+       WHERE course_id = ?
+       ORDER BY lecture_order ASC`,
       [courseId],
     );
 
+    /* COMPLETED MODULES */
+
     const [completed] = await db.query(
-      `SELECT module_id 
-       FROM user_progress 
-       WHERE user_id = ? AND course_id = ? AND completed = true`,
+      `SELECT module_id
+       FROM user_progress
+       WHERE user_id = ?
+       AND course_id = ?
+       AND completed = true`,
       [userId, courseId],
     );
 

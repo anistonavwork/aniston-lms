@@ -46,16 +46,56 @@ GET ALL USERS (ADMIN PANEL)
 */
 export const getAllUsers = async (req, res) => {
   try {
-    const [users] = await db.query(
-      `SELECT id, name, email, business_category, system_role AS role 
-       FROM users 
-       WHERE is_approved = true`
-    );
+
+    const [users] = await db.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.system_role,
+        u.is_approved,
+        d.name AS designation,
+
+        COUNT(DISTINCT e.course_id) AS courses_enrolled,
+
+        ROUND(
+          (COUNT(DISTINCT up.module_id) / 
+          NULLIF((SELECT COUNT(*) FROM modules WHERE course_id = e.course_id),0)) * 100
+        ) AS progress,
+
+        ar.score AS assessment_score
+
+      FROM users u
+
+      LEFT JOIN designations d 
+        ON u.designation_id = d.id
+
+      LEFT JOIN enrollments e 
+        ON e.user_id = u.id
+
+      LEFT JOIN user_progress up 
+        ON up.user_id = u.id
+
+      LEFT JOIN assessment_results ar 
+        ON ar.user_id = u.id
+
+      WHERE u.system_role = 'user'
+
+      GROUP BY u.id
+
+      ORDER BY u.created_at DESC
+    `);
 
     res.json(users);
+
   } catch (error) {
+
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+
+    res.status(500).json({
+      message: "Failed to fetch users"
+    });
+
   }
 };
 
@@ -66,18 +106,35 @@ GET USER DETAILS
 */
 export const getUserDetails = async (req, res) => {
   try {
+
     const { id } = req.params;
 
+    /* =========================
+       USER PROFILE
+    ========================= */
+
     const [[user]] = await db.query(
-      `SELECT id, name, email, business_category, system_role AS role
-       FROM users
-       WHERE id = ?`,
+      `SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.business_category,
+        u.system_role AS role,
+        d.name AS designation
+       FROM users u
+       LEFT JOIN designations d 
+         ON u.designation_id = d.id
+       WHERE u.id = ?`,
       [id]
     );
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    /* =========================
+       COURSE PROGRESS
+    ========================= */
 
     const [courses] = await db.query(
       `SELECT 
@@ -100,14 +157,51 @@ export const getUserDetails = async (req, res) => {
       [id]
     );
 
+    /* =========================
+       ASSESSMENT RESULTS
+    ========================= */
+
+    const [assessments] = await db.query(
+      `SELECT 
+        level,
+        score,
+        passed,
+        taken_at
+       FROM assessment_results
+       WHERE user_id = ?
+       ORDER BY taken_at DESC`,
+      [id]
+    );
+
+    /* =========================
+       CERTIFICATES
+    ========================= */
+
+    const [certificates] = await db.query(
+      `SELECT 
+        level,
+        certificate_url,
+        issued_at
+       FROM certificates
+       WHERE user_id = ?`,
+      [id]
+    );
+
     res.json({
       user,
-      courses
+      courses,
+      assessments,
+      certificates
     });
 
   } catch (error) {
+
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+
+    res.status(500).json({
+      message: "Server error"
+    });
+
   }
 };
 

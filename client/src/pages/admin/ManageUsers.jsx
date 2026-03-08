@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const ManageUsers = () => {
-  const [users, setUsers] = useState([]);
-  const navigate = useNavigate();
 
-  /* =========================
-     FETCH USERS
-  ========================= */
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/admin/users");
@@ -19,84 +20,95 @@ const ManageUsers = () => {
     }
   };
 
-  /* =========================
-     DELETE USER
-  ========================= */
   const deleteUser = async (id) => {
-    if (!window.confirm("Delete this user?")) return;
-
     try {
+
       await axiosInstance.delete(`/admin/users/${id}`);
+
       toast.success("User deleted");
+
       fetchUsers();
+
     } catch (error) {
+
       toast.error("Delete failed");
+
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">
-        Manage Users
-      </h2>
 
-      <div className="bg-white border rounded-lg overflow-hidden">
+    <div className="p-6">
 
-        <table className="w-full text-sm">
+      <h1 className="text-2xl font-bold mb-6">Manage Users</h1>
+
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+
+        <table className="w-full">
 
           <thead className="bg-gray-100">
+
             <tr>
-              <th className="text-left p-4">Name</th>
-              <th className="text-left p-4">Email</th>
-              <th className="text-left p-4">Category</th>
-              <th className="text-left p-4">Role</th>
-              <th className="text-left p-4">Actions</th>
+              <th className="p-3 text-left">Name</th>
+              <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Designation</th>
+              <th className="p-3 text-left">Courses</th>
+              <th className="p-3 text-left">Progress</th>
+              <th className="p-3 text-left">Score</th>
+              <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left">Actions</th>
             </tr>
+
           </thead>
 
           <tbody>
 
             {users.map((user) => (
-              <tr
-                key={user.id}
-                className="border-t"
-              >
-                <td className="p-4">
-                  {user.name}
+
+              <tr key={user.id} className="border-t">
+
+                <td className="p-3">{user.name}</td>
+
+                <td className="p-3">{user.email}</td>
+
+                <td className="p-3">
+                  {user.designation || "-"}
                 </td>
 
-                <td className="p-4">
-                  {user.email}
+                <td className="p-3">
+                  {user.courses_enrolled || 0}
                 </td>
 
-                <td className="p-4">
-                  {user.business_category}
+                <td className="p-3">
+                  {user.progress || 0}%
                 </td>
 
-                <td className="p-4">
-                  {user.role}
+                <td className="p-3">
+                  {user.assessment_score || "-"}
                 </td>
 
-                <td className="p-4 space-x-4">
+                <td className="p-3">
 
-                  {/* VIEW USER */}
-                  <button
-                    onClick={() =>
-                      navigate(`/admin/users/${user.id}`)
-                    }
-                    className="text-blue-600 hover:underline"
+                  {user.is_approved ? (
+                    <span className="text-green-600">Active</span>
+                  ) : (
+                    <span className="text-yellow-600">Pending</span>
+                  )}
+
+                </td>
+
+                <td className="p-3 flex gap-3">
+
+                  <Link
+                    to={`/admin/users/${user.id}`}
+                    className="text-blue-600"
                   >
                     View
-                  </button>
+                  </Link>
 
-                  {/* DELETE USER */}
                   <button
                     onClick={() => deleteUser(user.id)}
-                    className="text-red-600 hover:underline"
+                    className="text-red-600"
                   >
                     Delete
                   </button>
@@ -104,6 +116,7 @@ const ManageUsers = () => {
                 </td>
 
               </tr>
+
             ))}
 
           </tbody>
@@ -111,8 +124,11 @@ const ManageUsers = () => {
         </table>
 
       </div>
+
     </div>
+
   );
+
 };
 
 export default ManageUsers;

@@ -8,33 +8,32 @@ GET /api/admin/analytics
 */
 export const getAnalytics = async (req, res) => {
   try {
-
     /* =============================
        TOTAL COUNTS
     ============================= */
 
     const [[users]] = await db.query(
-      "SELECT COUNT(*) as total_users FROM users"
+      "SELECT COUNT(*) as totalUsers FROM users WHERE system_role='user' AND is_approved = 1",
     );
 
     const [[courses]] = await db.query(
-      "SELECT COUNT(*) as total_courses FROM courses"
+      "SELECT COUNT(*) as totalCourses FROM courses",
     );
 
     const [[modules]] = await db.query(
-      "SELECT COUNT(*) as total_modules FROM modules"
+      "SELECT COUNT(*) as totalModules FROM modules",
     );
 
     const [[enrollments]] = await db.query(
-      "SELECT COUNT(*) as total_enrollments FROM enrollments"
+      "SELECT COUNT(*) as totalEnrollments FROM enrollments",
     );
 
     const [[passedAssessments]] = await db.query(
-      "SELECT COUNT(*) as passed_assessments FROM assessment_results WHERE passed = true"
+      "SELECT COUNT(*) as assessmentsPassed FROM assessment_results WHERE passed = true",
     );
 
     const [[certificates]] = await db.query(
-      "SELECT COUNT(*) as certificates_issued FROM certificates"
+      "SELECT COUNT(*) as certificatesIssued FROM certificates",
     );
 
     /* =============================
@@ -46,6 +45,7 @@ export const getAnalytics = async (req, res) => {
         DATE(created_at) as date,
         COUNT(*) as users
       FROM users
+      WHERE system_role='user'
       GROUP BY DATE(created_at)
       ORDER BY date DESC
       LIMIT 7
@@ -89,26 +89,25 @@ export const getAnalytics = async (req, res) => {
 
     res.json({
       totals: {
-        total_users: users.total_users,
-        total_courses: courses.total_courses,
-        total_modules: modules.total_modules,
-        total_enrollments: enrollments.total_enrollments,
-        passed_assessments: passedAssessments.passed_assessments,
-        certificates_issued: certificates.certificates_issued
+        users: users.totalUsers,
+        courses: courses.totalCourses,
+        modules: modules.totalModules,
+        enrollments: enrollments.totalEnrollments,
+        assessmentsPassed: passedAssessments.assessmentsPassed,
+        certificatesIssued: certificates.certificatesIssued,
       },
 
-      user_growth: userGrowth,
-      course_enrollments: courseEnrollments,
-      course_completion: courseCompletion
+      charts: {
+        userGrowth,
+        courseEnrollments,
+        courseCompletion,
+      },
     });
-
   } catch (error) {
-
     console.error(error);
 
     res.status(500).json({
-      message: "Server error"
+      message: "Server error",
     });
-
   }
 };

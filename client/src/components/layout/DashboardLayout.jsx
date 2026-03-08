@@ -21,17 +21,7 @@ const DashboardLayout = () => {
         </div>
 
         <nav className="flex-1 p-6 space-y-3 text-sm">
-          {user?.role === "admin" && (
-            <>
-              <Link to="/admin" className="block hover:opacity-80">
-                Dashboard
-              </Link>
-              <Link to="/admin/users" className="block hover:opacity-80">
-                Manage Users
-              </Link>
-            </>
-          )}
-
+        
           {user?.role === "user" && (
             <>
               <Link to="/dashboard" className="block hover:opacity-80">
@@ -63,18 +53,21 @@ const DashboardLayout = () => {
               <Link to="/admin" className="block hover:opacity-80">
                 Dashboard
               </Link>
-              <Link to="/admin/categories" className="block hover:opacity-80">
-                Categories
+
+              <Link to="/admin/users" className="block hover:opacity-80">
+                Manage Users
               </Link>
-              <Link to="/admin/courses" className="block hover:opacity-80">
-                Courses
+
+              <Link to="/admin/add-course" className="block hover:opacity-80">
+                Add Course
               </Link>
-              <Link to="/admin/modules" className="block hover:opacity-80">
-                Modules
+
+              <Link
+                to="/admin/courses"
+                className="block hover:opacity-80"
+              >
+                Manage Courses
               </Link>
-              <Link to="/admin/assessments">Assessments</Link>
-              <Link to="/admin/lms-structure">LMS Structure</Link>
-              <Link to="/admin/upload-lecture">Upload Lectures</Link>
             </>
           )}
         </nav>
