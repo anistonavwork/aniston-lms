@@ -8,7 +8,7 @@ const AddCourse = () => {
   const [modules, setModules] = useState([
     {
       title: "",
-      lecture_order: 1,
+      step_name: "",
       file: null,
     },
   ]);
@@ -43,48 +43,73 @@ const AddCourse = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const courseRes = await axiosInstance.post("/courses", {
-        title: form.title,
-        description: form.description,
-        category_id: 1,
-      });
+  try {
 
-      const courseId = courseRes.data.course_id;
+    /* CREATE COURSE */
 
-      for (const module of modules) {
-        if (!module.title) {
-          toast.error("Module title required");
-          return;
-        }
+    const courseRes = await axiosInstance.post("/courses", {
+      title: form.title,
+      description: form.description,
+      level_id: form.level_id,
+      designation_id: form.designation_id || null,
+    });
 
-        const formData = new FormData();
+    const courseId = courseRes.data.course_id;
 
-        formData.append("title", module.title);
-        formData.append("lecture_order", module.lecture_order);
-        formData.append("course_id", courseId);
-        formData.append("content_type", "ppt");
-        formData.append("file", module.file);
+    /* CREATE MODULES */
 
-        await axiosInstance.post("/modules", formData);
+    for (const module of modules) {
+
+      if (!module.title) {
+        toast.error("Module title required");
+        return;
       }
 
-      toast.success("Course and modules created");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to create course");
+      if (!module.step_name) {
+        toast.error("Step name required");
+        return;
+      }
+
+      if (!module.file) {
+        toast.error("Module file required");
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append("title", module.title);
+      formData.append("step_name", module.step_name);
+      formData.append("course_id", courseId);
+      formData.append("content_type", "ppt");
+      formData.append("file", module.file);
+
+      await axiosInstance.post("/modules", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
     }
-  };
+
+    toast.success("Course and modules created");
+
+  } catch (error) {
+
+    console.error(error);
+    toast.error("Failed to create course");
+
+  }
+};
 
   const addModule = () => {
     setModules([
       ...modules,
       {
         title: "",
-        lecture_order: modules.length + 1,
+        step_name: "",
         file: null,
       },
     ]);
@@ -185,6 +210,16 @@ const AddCourse = () => {
             <div key={index} className="grid grid-cols-2 gap-4">
               <input
                 type="text"
+                placeholder="Step Name (Example: STEP 1)"
+                value={module.step_name}
+                onChange={(e) =>
+                  handleModuleChange(index, "step_name", e.target.value)
+                }
+                className="border p-2 rounded"
+              />
+
+              <input
+                type="text"
                 placeholder="Module Title"
                 value={module.title}
                 onChange={(e) =>
@@ -193,15 +228,6 @@ const AddCourse = () => {
                 className="border p-2 rounded"
               />
 
-              <input
-                type="number"
-                placeholder="Lecture Order"
-                value={module.lecture_order}
-                onChange={(e) =>
-                  handleModuleChange(index, "lecture_order", e.target.value)
-                }
-                className="border p-2 rounded"
-              />
               <input
                 type="file"
                 accept=".ppt,.pptx,.pdf"

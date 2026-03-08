@@ -8,43 +8,73 @@ export const addModule = async (req, res) => {
 
     const {
       title,
+      step_name,
       video_url,
       course_id,
-      lecture_order,
-      content_type,
-      designation_id
+      content_type
     } = req.body;
 
-    if (!title || !course_id || !lecture_order || !content_type) {
+    if (!title || !course_id || !content_type) {
       return res.status(400).json({
-        message: "title, course_id, lecture_order and content_type required"
+        message: "title, course_id and content_type required"
       });
     }
 
+    /* ======================
+       FILE PATH
+    ====================== */
+
     let filePath = null;
 
-    // if file uploaded
     if (req.file) {
       filePath = req.file.path;
     }
 
+    /* ======================
+       AUTO STEP NAME
+    ====================== */
+
+    let stepName = step_name;
+
+    if (!stepName) {
+      stepName = "Step 1";
+    }
+
+    /* ======================
+       AUTO LECTURE ORDER
+    ====================== */
+
+    const [[orderResult]] = await db.query(
+      `SELECT COUNT(*) as count
+       FROM modules
+       WHERE course_id = ?
+       AND step_name = ?`,
+      [course_id, stepName]
+    );
+
+    const lectureOrder = orderResult.count + 1;
+
+    /* ======================
+       INSERT MODULE
+    ====================== */
+
     await db.query(
-      `INSERT INTO modules 
-      (title, content_type, video_url, file_path, course_id, lecture_order, designation_id)
+      `INSERT INTO modules
+      (title, step_name, content_type, video_url, file_path, course_id, lecture_order)
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         title,
+        stepName,
         content_type,
         video_url || null,
         filePath,
         course_id,
-        lecture_order,
-        designation_id || null
+        lectureOrder
       ]
     );
 
     res.status(201).json({
-      message: "Module added successfully"
+      message: "Lecture uploaded successfully"
     });
 
   } catch (error) {
@@ -61,41 +91,37 @@ export const addModule = async (req, res) => {
 
 /*
 ---------------------------------------
-GET MODULES BY COURSE (FILTERED BY DESIGNATION)
+GET MODULES BY COURSE
 GET /api/modules/:courseId
 ---------------------------------------
 */
 export const getModulesByCourse = async (req, res) => {
+
   try {
 
     const { courseId } = req.params;
-    const userId = req.user.id;
 
-    // Get user's designation
-    const [[user]] = await db.query(
-      "SELECT designation_id FROM users WHERE id = ?",
-      [userId]
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
-    const designationId = user.designation_id;
-
-    // Fetch modules for this course and designation
     const [modules] = await db.query(
       `SELECT *
        FROM modules
        WHERE course_id = ?
-       AND (designation_id IS NULL OR designation_id = ?)
        ORDER BY lecture_order ASC`,
-      [courseId, designationId]
+      [courseId]
     );
 
-    res.json(modules);
+    const grouped = {};
+
+    for (const module of modules) {
+
+      if (!grouped[module.step_name]) {
+        grouped[module.step_name] = [];
+      }
+
+      grouped[module.step_name].push(module);
+
+    }
+
+    res.json(grouped);
 
   } catch (error) {
 
@@ -106,6 +132,7 @@ export const getModulesByCourse = async (req, res) => {
     });
 
   }
+
 };
 
 
@@ -113,26 +140,27 @@ export const getModulesByCourse = async (req, res) => {
    UPDATE MODULE (ADMIN)
 ============================ */
 export const updateModule = async (req, res) => {
+
   try {
 
     const { id } = req.params;
 
     const {
       title,
+      step_name,
       video_url,
-      lecture_order,
-      designation_id
+      lecture_order
     } = req.body;
 
     await db.query(
       `UPDATE modules
-       SET title = ?, video_url = ?, lecture_order = ?, designation_id = ?
+       SET title = ?, step_name = ?, video_url = ?, lecture_order = ?
        WHERE id = ?`,
       [
         title,
+        step_name,
         video_url || null,
         lecture_order,
-        designation_id || null,
         id
       ]
     );
@@ -150,6 +178,7 @@ export const updateModule = async (req, res) => {
     });
 
   }
+
 };
 
 
@@ -157,6 +186,7 @@ export const updateModule = async (req, res) => {
    DELETE MODULE (ADMIN)
 ============================ */
 export const deleteModule = async (req, res) => {
+
   try {
 
     const { id } = req.params;
@@ -179,4 +209,5 @@ export const deleteModule = async (req, res) => {
     });
 
   }
+
 };

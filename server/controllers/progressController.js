@@ -110,25 +110,47 @@ export const getCourseProgress = async (req, res) => {
     const userId = req.user.id;
     const { courseId } = req.params;
 
-    const [rows] = await db.query(
-      `SELECT 
-        m.id AS module_id,
-        IF(up.completed IS NULL, false, up.completed) AS completed
-       FROM modules m
-       LEFT JOIN user_progress up 
-         ON up.module_id = m.id 
-         AND up.user_id = ?
-       WHERE m.course_id = ?
-       ORDER BY m.lecture_order ASC`,
-      [userId, courseId],
+    /* TOTAL MODULES */
+
+    const [[total]] = await db.query(
+      `SELECT COUNT(*) as total
+       FROM modules
+       WHERE course_id = ?`,
+      [courseId]
     );
 
-    res.json(rows);
+    /* COMPLETED MODULES */
+
+    const [completedRows] = await db.query(
+      `SELECT module_id
+       FROM user_progress
+       WHERE user_id = ?
+       AND course_id = ?
+       AND completed = true`,
+      [userId, courseId]
+    );
+
+    const completedModules = completedRows.map((m) => m.module_id);
+
+    const progressPercent =
+      total.total === 0
+        ? 0
+        : Math.round((completedModules.length / total.total) * 100);
+
+    res.json({
+      completedModules,
+      progressPercent,
+      totalModules: total.total,
+    });
+
   } catch (error) {
+
     console.error(error);
+
     res.status(500).json({
       message: "Server error",
     });
+
   }
 };
 

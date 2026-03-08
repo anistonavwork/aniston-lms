@@ -4,18 +4,32 @@ import fs from "fs";
 
 /*
 ---------------------------------------
+BASE UPLOAD DIRECTORY
+---------------------------------------
+*/
+
+const BASE_UPLOAD_PATH = path.join(process.cwd(), "uploads");
+
+/*
+---------------------------------------
 STORAGE CONFIG
 ---------------------------------------
 */
+
 const storage = multer.diskStorage({
 
   destination: function (req, file, cb) {
 
     const { course_id } = req.body;
 
-    const uploadPath = `uploads/courses/course-${course_id}`;
+    if (!course_id) {
+      return cb(new Error("course_id is required for upload"));
+    }
 
-    // create folder if not exists
+    const uploadPath = path.join(BASE_UPLOAD_PATH, "courses", `course-${course_id}`);
+
+    /* CREATE DIRECTORY IF NOT EXISTS */
+
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
@@ -25,9 +39,12 @@ const storage = multer.diskStorage({
 
   filename: function (req, file, cb) {
 
-    const uniqueName = Date.now() + "-" + file.originalname;
+    const ext = path.extname(file.originalname);
+
+    const uniqueName = Date.now() + ext;
 
     cb(null, uniqueName);
+
   }
 
 });
@@ -38,6 +55,7 @@ const storage = multer.diskStorage({
 FILE FILTER
 ---------------------------------------
 */
+
 const fileFilter = (req, file, cb) => {
 
   const allowedTypes = [
@@ -57,10 +75,18 @@ const fileFilter = (req, file, cb) => {
 };
 
 
+/*
+---------------------------------------
+MULTER INSTANCE
+---------------------------------------
+*/
+
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 200 * 1024 * 1024 } // 200MB
+  limits: {
+    fileSize: 200 * 1024 * 1024
+  }
 });
 
 export default upload;

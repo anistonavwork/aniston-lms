@@ -17,7 +17,7 @@ router.post("/", protect, authorize("admin"), createCourse);
 
 /* ================= PUBLIC ================= */
 
-router.get("/tree/all", getCourseTree);
+router.get("/tree/all", protect, getCourseTree);
 
 /* ================= USER ================= */
 

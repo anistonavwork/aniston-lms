@@ -6,21 +6,28 @@ import db from "../config/db.js";
 export const createCourse = async (req, res) => {
   try {
 
-    const { title, description, category_id } = req.body;
+    const { title, description, level_id, designation_id } = req.body;
 
-    if (!title || !category_id) {
+    if (!title || !level_id) {
       return res.status(400).json({
-        message: "Title and category required"
+        message: "Title and level required"
       });
     }
 
-    await db.query(
-      "INSERT INTO courses (title, description, category_id) VALUES (?, ?, ?)",
-      [title, description || null, category_id]
+    const [result] = await db.query(
+      `INSERT INTO courses (title, description, level_id, designation_id)
+       VALUES (?, ?, ?, ?)`,
+      [
+        title,
+        description || null,
+        level_id,
+        designation_id || null
+      ]
     );
 
     res.status(201).json({
-      message: "Course created successfully"
+      message: "Course created successfully",
+      course_id: result.insertId
     });
 
   } catch (error) {
@@ -75,108 +82,83 @@ export const getCoursesByCategory = async (req, res) => {
    LMS TREE (LEVEL → CATEGORY → COURSE → MODULE)
 ============================ */
 export const getCourseTree = async (req, res) => {
-
   try {
+    const userId = req.user.id;
+
+    /* GET USER DESIGNATION */
+
+    const [[user]] = await db.query(
+      `SELECT designation_id FROM users WHERE id = ?`,
+      [userId]
+    );
+
+    const designationId = user.designation_id;
+
+    /* GET LEVELS */
 
     const [levels] = await db.query(
-      "SELECT * FROM levels ORDER BY id"
+      `SELECT * FROM levels ORDER BY id`
     );
 
-    const [categories] = await db.query(
-      "SELECT * FROM categories"
-    );
+    const result = [];
 
-    const [courses] = await db.query(
-      "SELECT * FROM courses"
-    );
+    for (const level of levels) {
 
-    const [modules] = await db.query(
-      "SELECT * FROM modules ORDER BY lecture_order"
-    );
+      /* GET CATEGORIES WITH DESIGNATION FILTER */
 
-    /* ============================
-       GET USER DESIGNATION
-    ============================ */
-
-    const userId = req.user?.id;
-
-    let userDesignation = null;
-
-    if (userId) {
-
-      const [[user]] = await db.query(
-        "SELECT designation_id FROM users WHERE id = ?",
-        [userId]
+      const [categories] = await db.query(
+        `SELECT *
+         FROM categories
+         WHERE level_id = ?
+         AND (
+           designation_id IS NULL
+           OR designation_id = ?
+         )`,
+        [level.id, designationId]
       );
 
-      userDesignation = user?.designation_id || null;
+      for (const category of categories) {
 
+        /* GET COURSES */
+
+        const [courses] = await db.query(
+          `SELECT *
+           FROM courses
+           WHERE category_id = ?`,
+          [category.id]
+        );
+
+        for (const course of courses) {
+
+          /* GET MODULES */
+
+          const [modules] = await db.query(
+            `SELECT *
+             FROM modules
+             WHERE course_id = ?
+             ORDER BY lecture_order ASC`,
+            [course.id]
+          );
+
+          course.modules = modules;
+        }
+
+        category.courses = courses;
+      }
+
+      level.categories = categories;
+
+      result.push(level);
     }
 
-    /* ============================
-       BUILD TREE
-    ============================ */
-
-    const tree = levels.map(level => {
-
-      const levelCategories = categories
-        .filter(cat => {
-
-          if (cat.level_id !== level.id) return false;
-
-          /* LEVEL 1 → EVERYONE */
-          if (level.id === 1) return true;
-
-          /* LEVEL 2 → DESIGNATION BASED */
-          if (level.id === 2) {
-            return cat.designation_id === userDesignation;
-          }
-
-          return false;
-
-        })
-        .map(category => {
-
-          const categoryCourses = courses
-            .filter(course => course.category_id === category.id)
-            .map(course => {
-
-              const courseModules = modules
-                .filter(mod => mod.course_id === course.id);
-
-              return {
-                ...course,
-                modules: courseModules
-              };
-
-            });
-
-          return {
-            ...category,
-            courses: categoryCourses
-          };
-
-        });
-
-      return {
-        ...level,
-        categories: levelCategories
-      };
-
-    });
-
-    res.json(tree);
+    res.json(result);
 
   } catch (error) {
-
     console.error(error);
-
     res.status(500).json({
-      message: "Server error"
+      message: "Server error",
     });
-
   }
-
 };
 
 
