@@ -9,6 +9,11 @@ const CourseLearning = () => {
   const [modules, setModules] = useState([]);
   const [currentModule, setCurrentModule] = useState(null);
 
+  const BASE_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000"
+    : "/anistonlms";
+
   /* =========================
      FETCH MODULES
   ========================= */
@@ -101,7 +106,7 @@ const CourseLearning = () => {
         {/* FILE DOWNLOAD */}
         {currentModule.file_path && (
           <a
-            href={`http://localhost:5000/${currentModule.file_path}`}
+            href={`${BASE_URL}/${currentModule.file_path}`}
             target="_blank"
             className="text-blue-600 underline"
           >

@@ -6,6 +6,11 @@ const Certificates = () => {
   const [certificates, setCertificates] = useState([]);
   const [level2Passed, setLevel2Passed] = useState(false);
   const [loading, setLoading] = useState(true);
+   
+  const BASE_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000"
+    : "/anistonlms";
 
   useEffect(() => {
     const init = async () => {
@@ -84,7 +89,7 @@ const Certificates = () => {
             <p>Level {cert.level} Certificate</p>
 
             <a
-              href={`http://localhost:5000${cert.certificate_url}`}
+              href={`${BASE_URL}${cert.certificate_url}`}
               target="_blank"
               rel="noreferrer"
               className="text-blue-600 underline"

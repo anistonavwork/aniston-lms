@@ -1,7 +1,22 @@
 import axios from "axios";
 
+/*
+  Automatically detect environment
+
+  Local development:
+  http://localhost:5000
+
+  Production:
+  https://n8n.anistonav.com/anistonlms
+*/
+
+const API_BASE =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000/api"
+    : "/anistonlms/api";
+
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_BASE,
 });
 
 axiosInstance.interceptors.request.use((config) => {
@@ -20,7 +35,6 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-
       window.location.href = "/login";
     }
 
